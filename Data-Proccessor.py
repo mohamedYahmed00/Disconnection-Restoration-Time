@@ -1,43 +1,37 @@
-from queue import Queue
-from dataclasses import dataclass
-from datetime import date
-from operator import index
-from turtle import clear
 import pandas as pd
-from regex import P
-from sympy import print_glsl
-
-#Tkinter for choosing the file csv file to execute the code.
-from tkinter import Tk     # from tkinter import Tk for Python 3.x
+import os
+from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
-#below for clearing the terminal
-import os
+# Function to clear terminal (cross-platform)
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-# Clearing the terminal before running the code.
-clear = lambda:os.system('cls')
-clear()
+clear_terminal()
 
-Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
-filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
+# File dialog to select CSV
+root = Tk()
+root.withdraw()
+filename = askopenfilename(title="Select CSV File")
+root.destroy()
 
-data_list = pd.read_csv(filename) # reads the excel file into pandas 
+if not filename:
+    print("No file selected.")
+    exit(1)
 
-df = pd.DataFrame(data_list, columns= ['Date','Inbound','Outbound']) # converting Excel data into pandas data frame choosing the columns
+# Read CSV and select columns
+df = pd.read_csv(filename, usecols=['Date', 'Inbound', 'Outbound'])
+df.fillna(0, inplace=True)
+df.loc[df['Outbound'] < 1000, 'Outbound'] = 0
 
-df.fillna(0, inplace=True) # replacing Nan value with 0 
-
-df.loc[(df['Outbound'] < 1000), 'Outbound'] = 0 # replacing any Outbound value less than 1000 to 0 
-
-for i,index in df.iterrows():
-        if df['Outbound'][i] == 0 :   #or df['Outbound'][i] <= 1000:
-            
-            print('-', df['Date'][i],sep = ' ')
-            if df['Outbound'][i] != df['Outbound'][i + 1]:
-                
-                print('- Restored', df['Date'][i + 1], sep = ' ')
-            else:
-                pass
-        else:
-            pass
-
+for idx in range(len(df)):
+    outbound = df.at[idx, 'Outbound']
+    date = df.at[idx, 'Date']
+    if outbound == 0:
+        print('-', date)
+        # Check next row if not at the end
+        if idx < len(df) - 1:
+            next_outbound = df.at[idx + 1, 'Outbound']
+            next_date = df.at[idx + 1, 'Date']
+            if outbound != next_outbound:
+                print('- Restored', next_date)
